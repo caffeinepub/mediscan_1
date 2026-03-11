@@ -1,19 +1,37 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
 import { Toaster } from "@/components/ui/sonner";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { AlertCircle, Loader2, Pill, ScanBarcode, Search } from "lucide-react";
+import {
+  AlertCircle,
+  Globe,
+  Loader2,
+  Pill,
+  ScanBarcode,
+  Search,
+} from "lucide-react";
 import { useState } from "react";
 import type { MedicineInfo } from "./backend.d";
 import { MedicineDetail } from "./components/MedicineDetail";
 import { ScannerSection } from "./components/ScannerSection";
+import { LanguageProvider, useLanguage } from "./contexts/LanguageContext";
 import { useSearchByDrugName, useSearchByNdcCode } from "./hooks/useQueries";
+import { useTranslatedMedicine } from "./hooks/useTranslatedMedicine";
+import { LANGUAGES } from "./lib/translations";
 
 const queryClient = new QueryClient();
 
 function AppContent() {
+  const { t, language, setLanguage } = useLanguage();
   const [drugName, setDrugName] = useState("");
   const [result, setResult] = useState<MedicineInfo | null>(null);
   const [view, setView] = useState<"search" | "result">("search");
@@ -23,6 +41,11 @@ function AppContent() {
 
   const isSearching = drugSearch.isPending || ndcSearch.isPending;
   const error = drugSearch.error || ndcSearch.error;
+
+  const { translatedMedicine, isTranslating } = useTranslatedMedicine(
+    result,
+    language,
+  );
 
   const handleDrugSearch = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -75,21 +98,62 @@ function AppContent() {
           <div className="w-9 h-9 rounded-xl bg-primary flex items-center justify-center flex-shrink-0">
             <Pill className="w-5 h-5 text-primary-foreground" />
           </div>
-          <div>
+          <div className="flex-1 min-w-0">
             <h1 className="font-display text-xl font-bold text-foreground leading-none">
               MediScan
             </h1>
             <p className="text-xs text-muted-foreground leading-tight">
-              Medicine Information Scanner
+              {t.subtitle}
             </p>
+          </div>
+
+          {/* Language Selector */}
+          <div className="flex items-center gap-1.5 flex-shrink-0">
+            <Globe className="w-3.5 h-3.5 text-muted-foreground hidden sm:block" />
+            <Select
+              value={language}
+              onValueChange={(val) => setLanguage(val as typeof language)}
+            >
+              <SelectTrigger
+                data-ocid="language.select"
+                className="h-8 w-auto min-w-[100px] text-xs border-border bg-card gap-1 pr-2"
+                aria-label={t.selectLanguage}
+              >
+                <SelectValue>
+                  {LANGUAGES.find((l) => l.code === language)?.nativeLabel}
+                </SelectValue>
+              </SelectTrigger>
+              <SelectContent align="end" className="max-h-72">
+                {LANGUAGES.map((lang) => (
+                  <SelectItem
+                    key={lang.code}
+                    value={lang.code}
+                    className="text-xs"
+                  >
+                    <span className="flex items-center gap-2">
+                      <span className="font-medium">{lang.nativeLabel}</span>
+                      {lang.code !== "en" && (
+                        <span className="text-muted-foreground">
+                          {lang.label}
+                        </span>
+                      )}
+                    </span>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
         </div>
       </header>
 
       {/* Main content */}
       <main className="relative max-w-lg mx-auto px-4 py-6 pb-16">
-        {view === "result" && result ? (
-          <MedicineDetail info={result} onBack={handleBack} />
+        {view === "result" && translatedMedicine ? (
+          <MedicineDetail
+            info={translatedMedicine}
+            onBack={handleBack}
+            isTranslating={isTranslating}
+          />
         ) : (
           <div className="flex flex-col gap-6">
             {/* Scanner Section */}
@@ -97,10 +161,10 @@ function AppContent() {
               <div className="flex items-center gap-2 mb-3">
                 <ScanBarcode className="w-4 h-4 text-primary" />
                 <h2 className="text-sm font-semibold text-foreground">
-                  Scan Barcode
+                  {t.scanBarcode}
                 </h2>
                 <span className="text-xs text-muted-foreground">
-                  — Point at medicine packaging
+                  — {t.scanHint}
                 </span>
               </div>
               <ScannerSection onScan={handleScan} isSearching={isSearching} />
@@ -109,7 +173,7 @@ function AppContent() {
             <div className="flex items-center gap-3">
               <Separator className="flex-1" />
               <span className="text-xs text-muted-foreground font-medium">
-                or search by name
+                {t.orSearch}
               </span>
               <Separator className="flex-1" />
             </div>
@@ -119,14 +183,14 @@ function AppContent() {
               <div className="flex items-center gap-2 mb-3">
                 <Search className="w-4 h-4 text-primary" />
                 <h2 className="text-sm font-semibold text-foreground">
-                  Search by Drug Name
+                  {t.searchByName}
                 </h2>
               </div>
               <form onSubmit={handleDrugSearch} className="flex gap-2">
                 <Input
                   data-ocid="mediscan.search_input"
                   type="text"
-                  placeholder="e.g. Ibuprofen, Amoxicillin..."
+                  placeholder={t.searchPlaceholder}
                   value={drugName}
                   onChange={(e) => setDrugName(e.target.value)}
                   disabled={isSearching}
@@ -143,7 +207,7 @@ function AppContent() {
                   ) : (
                     <Search className="w-4 h-4" />
                   )}
-                  {isSearching ? "Searching" : "Search"}
+                  {isSearching ? t.searching : t.searchButton}
                 </Button>
               </form>
             </section>
@@ -158,10 +222,10 @@ function AppContent() {
                   <Loader2 className="w-5 h-5 text-primary animate-spin flex-shrink-0" />
                   <div>
                     <p className="text-sm font-medium text-foreground">
-                      Looking up medicine...
+                      {t.lookingUp}
                     </p>
                     <p className="text-xs text-muted-foreground">
-                      Fetching from medical database
+                      {t.fetchingDB}
                     </p>
                   </div>
                 </CardContent>
@@ -178,11 +242,10 @@ function AppContent() {
                   <AlertCircle className="w-5 h-5 text-destructive flex-shrink-0 mt-0.5" />
                   <div>
                     <p className="text-sm font-semibold text-destructive">
-                      Medicine not found
+                      {t.notFound}
                     </p>
                     <p className="text-xs text-muted-foreground mt-0.5">
-                      {error.message ||
-                        "Please try a different name or scan the barcode again."}
+                      {error.message || t.notFoundHint}
                     </p>
                   </div>
                 </CardContent>
@@ -196,7 +259,7 @@ function AppContent() {
                 style={{ animationDelay: "200ms" }}
               >
                 <p className="text-xs text-muted-foreground mb-2 font-medium">
-                  Try searching for:
+                  {t.trySuggestions}
                 </p>
                 <div className="flex flex-wrap gap-2">
                   {[
@@ -250,7 +313,9 @@ function AppContent() {
 export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <AppContent />
+      <LanguageProvider>
+        <AppContent />
+      </LanguageProvider>
     </QueryClientProvider>
   );
 }

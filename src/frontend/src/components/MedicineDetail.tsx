@@ -8,16 +8,20 @@ import {
   ClipboardList,
   Clock,
   FlaskConical,
+  Loader2,
   Pill,
   Sparkles,
   Target,
   Users,
 } from "lucide-react";
 import type { MedicineInfo } from "../backend.d";
+import { useLanguage } from "../contexts/LanguageContext";
+import { DietSection } from "./DietSection";
 
 interface MedicineDetailProps {
   info: MedicineInfo;
   onBack: () => void;
+  isTranslating?: boolean;
 }
 
 interface InfoCardProps {
@@ -80,7 +84,13 @@ function InfoCard({
   );
 }
 
-export function MedicineDetail({ info, onBack }: MedicineDetailProps) {
+export function MedicineDetail({
+  info,
+  onBack,
+  isTranslating = false,
+}: MedicineDetailProps) {
+  const { t } = useLanguage();
+
   return (
     <div
       className="flex flex-col gap-4 animate-fade-in"
@@ -94,7 +104,7 @@ export function MedicineDetail({ info, onBack }: MedicineDetailProps) {
         onClick={onBack}
       >
         <ArrowLeft className="w-4 h-4" />
-        Search Again
+        {t.searchAgain}
       </Button>
 
       {/* Medicine Name Hero */}
@@ -103,10 +113,21 @@ export function MedicineDetail({ info, onBack }: MedicineDetailProps) {
           <div className="w-10 h-10 rounded-xl bg-primary flex items-center justify-center flex-shrink-0 pulse-ring">
             <Pill className="w-5 h-5 text-primary-foreground" />
           </div>
-          <div className="min-w-0">
-            <h1 className="font-display text-2xl font-bold text-foreground leading-tight truncate">
-              {info.brandName || "Unknown Medicine"}
-            </h1>
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center gap-2 flex-wrap">
+              <h1 className="font-display text-2xl font-bold text-foreground leading-tight truncate">
+                {info.brandName || "Unknown Medicine"}
+              </h1>
+              {isTranslating && (
+                <span
+                  data-ocid="mediscan.loading_state"
+                  className="inline-flex items-center gap-1 text-xs text-muted-foreground bg-secondary px-2 py-0.5 rounded-full"
+                >
+                  <Loader2 className="w-3 h-3 animate-spin" />
+                  {t.translating}
+                </span>
+              )}
+            </div>
             {info.genericName && (
               <p className="text-sm text-muted-foreground truncate">
                 {info.genericName}
@@ -122,7 +143,7 @@ export function MedicineDetail({ info, onBack }: MedicineDetailProps) {
         {info.purpose && (
           <InfoCard
             icon={<Target className="w-4 h-4" />}
-            title="What it's used for"
+            title={t.usedFor}
             content={info.purpose}
             delay={60}
           />
@@ -130,7 +151,7 @@ export function MedicineDetail({ info, onBack }: MedicineDetailProps) {
         {info.howToTake && (
           <InfoCard
             icon={<ClipboardList className="w-4 h-4" />}
-            title="How to take it"
+            title={t.howToTake}
             content={info.howToTake}
             delay={120}
           />
@@ -138,7 +159,7 @@ export function MedicineDetail({ info, onBack }: MedicineDetailProps) {
         {info.whenToTake && (
           <InfoCard
             icon={<Clock className="w-4 h-4" />}
-            title="When to take it"
+            title={t.whenToTake}
             content={info.whenToTake}
             delay={180}
           />
@@ -146,7 +167,7 @@ export function MedicineDetail({ info, onBack }: MedicineDetailProps) {
         {info.whoShouldTake && (
           <InfoCard
             icon={<Users className="w-4 h-4" />}
-            title="Who should take it"
+            title={t.whoShouldTake}
             content={info.whoShouldTake}
             delay={240}
           />
@@ -154,7 +175,7 @@ export function MedicineDetail({ info, onBack }: MedicineDetailProps) {
         {info.warnings && (
           <InfoCard
             icon={<AlertTriangle className="w-4 h-4" />}
-            title="Warnings"
+            title={t.warnings}
             content={info.warnings}
             variant="warning"
             delay={300}
@@ -163,7 +184,7 @@ export function MedicineDetail({ info, onBack }: MedicineDetailProps) {
         {info.activeIngredients && (
           <InfoCard
             icon={<FlaskConical className="w-4 h-4" />}
-            title="Active Ingredients"
+            title={t.activeIngredients}
             content={info.activeIngredients}
             delay={360}
           />
@@ -183,7 +204,7 @@ export function MedicineDetail({ info, onBack }: MedicineDetailProps) {
               </div>
               <div className="flex-1">
                 <h3 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground mb-3">
-                  Similar Medicines
+                  {t.similarMedicines}
                 </h3>
                 <div className="flex flex-wrap gap-2">
                   {info.similarMedicines.map((med, index) => (
@@ -202,6 +223,9 @@ export function MedicineDetail({ info, onBack }: MedicineDetailProps) {
           </CardContent>
         </Card>
       )}
+
+      {/* Diet During Medication */}
+      <DietSection medicine={info} />
     </div>
   );
 }
